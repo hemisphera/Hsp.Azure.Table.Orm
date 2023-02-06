@@ -33,7 +33,7 @@ var sr1005 = new BassGuitar() {
     Manufacturer = "Ibanez",
     NoOfStrings = 6
 }
-Record.Open<BassGuitar>()
+await Record.Open<BassGuitar>()
     .Store(sr1005);
 ````
 
@@ -44,6 +44,6 @@ var items = await Record.Open<BassGuitar>()
     // set a filter for manufacturer = 'Ibanez'
     .SetRange(a => a.Manufacturer, "Ibanez) 
     // set a filter for at least 5 strings
-    .SetRange(a => a.NoOfString, 5, QueryComparisons.GreaterThanOrEqual)
+    .SetRange(a => a.NoOfStrings, 5, QueryComparisons.GreaterThanOrEqual)
     .Read();
 ````
