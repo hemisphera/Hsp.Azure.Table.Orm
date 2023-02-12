@@ -1,0 +1,35 @@
+name: v$(VersionPart_Major).$(VersionPart_Minor).$(VersionPart_Build)
+
+variables:
+- name: VersionPart_Major
+  value: '1'
+- name: VersionPart_Minor
+  value: '0'
+- name: VersionPart_Build
+  value: '$[counter(format(''{0}.{1}'', variables[''VersionPart_Major''], variables[''VersionPart_Minor'']), 0)]'
+- name: Build_Version
+  value: $(VersionPart_Major).$(VersionPart_Minor).$(VersionPart_Build).0
+- group: NuGet
+
+resources:
+  repositories:
+  - repository: templates
+    type: git
+    name: Build Scripts/DotNetBuildScripts
+
+trigger:
+  branches:
+    include: [ 'master', 'main' ]
+
+stages:
+- stage: Build
+  jobs:
+  - template: 'jobs/build-and-test.yml@templates'
+    parameters:
+      dotNetVersion: 6.x
+- stage: Deploy
+  dependsOn: Build
+  jobs:
+  - template: 'jobs/deploy-nuget.yml@templates'
+    parameters:
+      apiKey: $(NUGET_APIKEY)

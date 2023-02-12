@@ -1,0 +1,5 @@
+{
+    "ProjectsToPack": [
+        "Hsp.Azure.Table.Orm\\Hsp.Azure.Table.Orm.csproj"
+    ]
+}
