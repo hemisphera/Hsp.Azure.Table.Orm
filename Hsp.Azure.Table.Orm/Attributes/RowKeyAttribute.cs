@@ -2,11 +2,10 @@
 
 namespace Hsp.Azure.Table.Orm
 {
+
   [AttributeUsage(AttributeTargets.Property)]
-  public class FieldAttribute : Attribute
+  public class RowKeyAttribute : Attribute
   {
-
-    public string Name { get; set; }
-
   }
+
 }

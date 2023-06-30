@@ -2,8 +2,10 @@
 
 namespace Hsp.Azure.Table.Orm
 {
+
   [AttributeUsage(AttributeTargets.Property)]
-  public class RowKeyAttribute : Attribute
+  public class PartitionKeyAttribute : Attribute
   {
   }
+
 }

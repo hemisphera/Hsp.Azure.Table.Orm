@@ -2,8 +2,13 @@
 
 namespace Hsp.Azure.Table.Orm
 {
+
   [AttributeUsage(AttributeTargets.Property)]
-  public class PartitionKeyAttribute : Attribute
+  public class FieldAttribute : Attribute
   {
+
+    public string Name { get; set; }
+
   }
+
 }

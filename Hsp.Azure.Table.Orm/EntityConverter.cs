@@ -12,7 +12,13 @@ namespace Hsp.Azure.Table.Orm
       var metadata = TableMetadata.Get(item);
       var entity = new TableEntity(metadata.GetPartitionKey(item), metadata.GetRowKey(item));
       foreach (var field in metadata.Fields)
-        entity.Add(field.StorageName, field.Property.GetValue(item));
+      {
+        var entityValue = field.Property.GetValue(item);
+        if (entityValue is DateTime dt)
+          entityValue = dt.ToUniversalTime();
+        entity.Add(field.StorageName, entityValue);
+      }
+
       return entity;
     }
 
