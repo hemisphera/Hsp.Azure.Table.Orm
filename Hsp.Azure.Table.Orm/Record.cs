@@ -71,7 +71,7 @@ public class Record<T> : IStorageTable<T> where T : class, new()
 
   private async Task<TableEntity[]> ReadEntities(bool pointersOnly = false)
   {
-    var useCache = Metadata.IsCacheable && Cache != null;
+    var useCache = Metadata.IsCached && Cache != null;
 
     var filters = Filters?.ToList() ?? new List<string>();
     if (!String.IsNullOrEmpty(Metadata.FixedPartitionKey) && !useCache)
@@ -162,13 +162,13 @@ public class Record<T> : IStorageTable<T> where T : class, new()
 
   private async Task ResetCache()
   {
-    if (Cache != null && Metadata.IsCacheable)
+    if (Cache != null && Metadata.IsCached)
       await Cache.Reset(Metadata);
   }
 
   private async Task EnsureCacheLoaded()
   {
-    if (Cache == null || !Metadata.IsCacheable) return;
+    if (Cache == null || !Metadata.IsCached) return;
     await Cache.LoadCache(Metadata, async _ =>
     {
       var rec2 = Create(ConnectionString);

@@ -8,22 +8,44 @@ using Azure.Data.Tables;
 
 namespace Hsp.Azure.Table.Orm;
 
+/// <summary>
+/// Metadata of a table.
+/// </summary>
 public class TableMetadata
 {
 
+  /// <summary>
+  /// The name of the partition key field.
+  /// </summary>
   public const string PartitionKeyName = "PartitionKey";
 
+  /// <summary>
+  /// The name of the row key field.
+  /// </summary>
   public const string RowKeyName = "RowKey";
 
 
   private static Dictionary<Type, TableMetadata> MetadataStore { get; } = new Dictionary<Type, TableMetadata>();
 
-
+  /// <summary>
+  /// Registers a in the metadata store.
+  /// </summary>
+  /// <typeparam name="T">The type of the table.</typeparam>
+  /// <param name="name">The name of the table.</param>
+  /// <param name="fixedPartitionKey">If specified, the table will use this fixed partition key.</param>
+  /// <returns>The registered metadata.</returns>
   public static TableMetadata Register<T>(string name, string fixedPartitionKey = null)
   {
     return Register(typeof(T), name, fixedPartitionKey);
   }
 
+  /// <summary>
+  /// Registers a in the metadata store.
+  /// </summary>
+  /// <param name="type">The type of the table.</param>
+  /// <param name="name">The name of the table.</param>
+  /// <param name="fixedPartitionKey">If specified, the table will use this fixed partition key.</param>
+  /// <returns>The registered metadata.</returns>
   public static TableMetadata Register(Type type, string name, string fixedPartitionKey = null)
   {
     var metadata = new TableMetadata
@@ -33,7 +55,7 @@ public class TableMetadata
       FixedPartitionKey = fixedPartitionKey,
       RowKeyField = new TableField(RowKeyName, type.GetProperties().First(p => p.GetCustomAttribute<RowKeyAttribute>() != null)),
       PartitionKeyField = GetPartitionKeyField(type),
-      IsCacheable = type.GetCustomAttribute<CacheableAttribute>() != null,
+      IsCached = type.GetCustomAttribute<CacheableAttribute>() != null,
       Fields = type.GetProperties().Select(p =>
       {
         var attr = p.GetCustomAttribute<FieldAttribute>();
@@ -59,28 +81,51 @@ public class TableMetadata
     return new TableField(PartitionKeyName, property);
   }
 
-
+  /// <summary>
+  /// The name of the table. This is the name that will be used in the Azure Table Storage.
+  /// </summary>
   public string Name { get; private init; }
 
+  /// <summary>
+  /// The type that is used to represent the table.
+  /// </summary>
   public Type EntityType { get; init; }
 
+  /// <summary>
+  /// If specified, the table will use this fixed partition key.
+  /// </summary>
   public string FixedPartitionKey { get; private init; }
 
-
+  /// <summary>
+  /// The field that represents the partition key.
+  /// </summary>
   public TableField PartitionKeyField { get; private init; }
 
+  /// <summary>
+  /// The field that represents the row key.
+  /// </summary>
   public TableField RowKeyField { get; private init; }
 
+  /// <summary>
+  /// All fields of the table.
+  /// </summary>
   public TableField[] Fields { get; private init; }
 
-  public bool IsCacheable { get; private init; }
+  /// <summary>
+  /// Specifies if the table is cached.
+  /// </summary>
+  public bool IsCached { get; private init; }
 
 
   private TableMetadata()
   {
   }
 
-
+  /// <summary>
+  /// Retrieves the partition key for a given object.
+  /// </summary>
+  /// <param name="item">The object.</param>
+  /// <returns>The partition key.</returns>
   public string GetPartitionKey(object item)
   {
     if (!String.IsNullOrEmpty(FixedPartitionKey))
@@ -88,6 +133,11 @@ public class TableMetadata
     return ConvertToString(PartitionKeyField.Property, item);
   }
 
+  /// <summary>
+  /// Sets the partition key on a given object.
+  /// </summary>
+  /// <param name="item">The object.</param>
+  /// <param name="value">The partition key.</param>
   public void SetPartitionKey(object item, string value)
   {
     if (!String.IsNullOrEmpty(FixedPartitionKey))
@@ -192,28 +242,5 @@ public class TableMetadata
     var cl = new TableClient(connectionString, Name);
     await cl.CreateIfNotExistsAsync();
   }
-
-  /*
-  public EdmEntityType AsEdmEntityType()
-  {
-    var model = new EdmEntityType("", Name);
-    model.AddStructuralProperty(RowKeyName, EdmPrimitiveTypeKind.String);
-    model.AddStructuralProperty(PartitionKeyName, EdmPrimitiveTypeKind.String);
-    foreach (var tableField in Fields)
-      model.AddStructuralProperty(tableField.StorageName, GetEdmPrimitiveTypeKind(tableField.StorageType));
-    return model;
-  }
-
-  private static EdmPrimitiveTypeKind GetEdmPrimitiveTypeKind(Type dataType)
-  {
-    if (dataType == typeof(string)) return EdmPrimitiveTypeKind.String;
-    if (dataType == typeof(DateTime) || dataType == typeof(DateTimeOffset)) return EdmPrimitiveTypeKind.DateTimeOffset;
-    if (dataType == typeof(bool)) return EdmPrimitiveTypeKind.Boolean;
-    if (dataType == typeof(int)) return EdmPrimitiveTypeKind.Int32;
-    if (dataType == typeof(double)) return EdmPrimitiveTypeKind.Double;
-    if (dataType == typeof(Guid)) return EdmPrimitiveTypeKind.Guid;
-    throw new NotSupportedException($"The type '{dataType}' is not supported.");
-  }
-  */
 
 }
