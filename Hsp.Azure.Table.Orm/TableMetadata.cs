@@ -145,32 +145,62 @@ public class TableMetadata
     PartitionKeyField.Property.SetValue(item, ConvertFromString(PartitionKeyField.Property.PropertyType, value));
   }
 
+  /// <summary>
+  /// Retrieves the row key for a given object.
+  /// </summary>
+  /// <param name="item">The object.</param>
+  /// <returns>The row key.</returns>
   public string GetRowKey(object item)
   {
     return ConvertToString(RowKeyField.Property, item);
   }
 
+  /// <summary>
+  /// Sets the row key on a given object.
+  /// </summary>
+  /// <param name="item">The object.</param>
+  /// <param name="value">The row key.</param>
   public void SetRowKey(object item, string value)
   {
     RowKeyField.Property.SetValue(item, ConvertFromString(RowKeyField.Property.PropertyType, value));
   }
 
 
+  /// <summary>
+  /// Retrieves metadata for the given type.
+  /// </summary>
+  /// <param name="type">The type.</param>
+  /// <returns>The metadata.</returns>
   public static TableMetadata Get(Type type)
   {
     return MetadataStore[type];
   }
 
+  /// <summary>
+  /// Retrieves metadata for the type the given item is of.
+  /// </summary>
+  /// <param name="item">The item.</param>
+  /// <returns>The metadata.</returns>
   public static TableMetadata Get(object item)
   {
     return MetadataStore[item.GetType()];
   }
 
+  /// <summary>
+  /// Retrieves metadata for a table with the given name.
+  /// </summary>
+  /// <param name="tableName">The name of the table.</param>
+  /// <returns>The metadata.</returns>
   public static TableMetadata GetByName(string tableName)
   {
     return MetadataStore.Values.FirstOrDefault(item => item.Name == tableName);
   }
 
+  /// <summary>
+  /// Retrieves metadata for the given type.
+  /// </summary>
+  /// <typeparam name="T">The type of the table.</typeparam>
+  /// <returns>The metadata.</returns>
   public static TableMetadata Get<T>()
   {
     return MetadataStore[typeof(T)];
@@ -218,6 +248,11 @@ public class TableMetadata
     }
   }
 
+  /// <summary>
+  /// Returns a field on the table, by the name of the property on the model.
+  /// </summary>
+  /// <param name="name">The property name</param>
+  /// <returns>The field.</returns>
   public TableField GetFieldByModelName(string name)
   {
     if (PartitionKeyField?.Property?.Name == name) return PartitionKeyField;
@@ -225,6 +260,11 @@ public class TableMetadata
     return Fields.FirstOrDefault(f => f.Property.Name == name);
   }
 
+  /// <summary>
+  /// Returns a field on the table, by the name of the field on the storage.
+  /// </summary>
+  /// <param name="name">The storage field name</param>
+  /// <returns>The field.</returns>
   public TableField GetFieldByStorageName(string name)
   {
     if (name == PartitionKeyName) return PartitionKeyField;
@@ -232,11 +272,19 @@ public class TableMetadata
     return Fields.FirstOrDefault(f => f.StorageName == name);
   }
 
+  /// <summary>
+  /// Lists all metadata items that were registered.
+  /// </summary>
+  /// <returns></returns>
   public static IEnumerable<TableMetadata> List()
   {
     return MetadataStore.Values;
   }
 
+  /// <summary>
+  /// Creates the table on the storage, if it does not exist.
+  /// </summary>
+  /// <param name="connectionString">The connection string to the storage account.</param>
   public async Task CreateTable(string connectionString)
   {
     var cl = new TableClient(connectionString, Name);

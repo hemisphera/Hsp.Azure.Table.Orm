@@ -1,11 +1,11 @@
 ﻿using System;
 
-namespace Hsp.Azure.Table.Orm
+namespace Hsp.Azure.Table.Orm;
+
+/// <summary>
+/// Apply this attribute to a property to mark it as the partition key.
+/// </summary>
+[AttributeUsage(AttributeTargets.Property)]
+public class PartitionKeyAttribute : Attribute
 {
-
-  [AttributeUsage(AttributeTargets.Property)]
-  public class PartitionKeyAttribute : Attribute
-  {
-  }
-
 }
