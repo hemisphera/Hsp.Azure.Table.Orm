@@ -162,7 +162,7 @@ public class Record<T> where T : class, new()
     {
       await EnsureCacheLoaded();
       if (filters.Any())
-        throw new NotSupportedException("Filters are not supported for cacheable tables.");
+        throw new ServerFiltersNotSupportedException(Metadata);
       return (await Cache.GetItems(Metadata)).ToArray();
     }
 
