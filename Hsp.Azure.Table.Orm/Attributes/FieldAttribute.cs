@@ -8,11 +8,9 @@ namespace Hsp.Azure.Table.Orm;
 [AttributeUsage(AttributeTargets.Property)]
 public class FieldAttribute : Attribute
 {
-
   /// <summary>
   /// The name of the field on the Azure Table Storage.
   /// If this is not specified, the name of the property this attribute is applied to will be used.
   /// </summary>
-  public string Name { get; set; }
-
+  public required string Name { get; set; }
 }

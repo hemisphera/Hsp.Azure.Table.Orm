@@ -5,7 +5,6 @@
 /// </summary>
 public static class QueryComparisons
 {
-
   /// <summary>Represents the Equal operator.</summary>
   public const string Equal = "eq";
 
@@ -23,5 +22,4 @@ public static class QueryComparisons
 
   /// <summary>Represents the Less Than or Equal operator.</summary>
   public const string LessThanOrEqual = "le";
-
 }

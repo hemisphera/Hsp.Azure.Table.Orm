@@ -1,14 +1,13 @@
-﻿namespace Hsp.Azure.Table.Orm
+﻿namespace Hsp.Azure.Table.Orm;
+
+internal enum EdmType
 {
-  internal enum EdmType
-  {
-    Boolean,
-    Int32,
-    DateTime,
-    Double,
-    Guid,
-    Int64,
-    String,
-    Binary
-  }
+  Boolean,
+  Int32,
+  DateTime,
+  Double,
+  Guid,
+  Int64,
+  String,
+  Binary
 }

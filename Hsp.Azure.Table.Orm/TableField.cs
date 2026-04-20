@@ -8,7 +8,6 @@ namespace Hsp.Azure.Table.Orm;
 /// </summary>
 public sealed class TableField
 {
-
   /// <summary>
   /// The name this field has on the storage.
   /// </summary>
@@ -17,7 +16,7 @@ public sealed class TableField
   /// <summary>
   /// The class property this field is mapped to.
   /// </summary>
-  public PropertyInfo Property { get; }
+  public PropertyInfo? Property { get; }
 
   /// <summary>
   /// The data type this property has on the storage.
@@ -38,13 +37,14 @@ public sealed class TableField
   /// </summary>
   /// <param name="storageName"></param>
   /// <param name="property"></param>
-  public TableField(string storageName, PropertyInfo property)
+  public TableField(string storageName, PropertyInfo? property)
   {
     StorageName = storageName;
     Property = property;
-    StorageType = property?.PropertyType;
-    if (storageName == TableMetadata.RowKeyName || storageName == TableMetadata.PartitionKeyName)
+    if (property != null)
+      StorageType = property.PropertyType;
+    if (storageName is TableMetadata.RowKeyName or TableMetadata.PartitionKeyName)
       StorageType = typeof(string);
+    ArgumentNullException.ThrowIfNull(StorageType);
   }
-
 }

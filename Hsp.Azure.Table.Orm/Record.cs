@@ -13,12 +13,11 @@ namespace Hsp.Azure.Table.Orm;
 /// <typeparam name="T">The entity type to open.</typeparam>
 public class Record<T> where T : class, new()
 {
-
   private TableMetadata Metadata { get; }
 
   private string ConnectionString { get; }
 
-  private IStorageCache Cache { get; }
+  private IStorageCache? Cache { get; }
 
 
   /// <summary>
@@ -28,22 +27,20 @@ public class Record<T> where T : class, new()
   /// <param name="connectionString">The connection string to the storage account.</param>
   /// <param name="cache">An otpional cache to be used.</param>
   /// <returns>The record instance.</returns>
-  public static Record<T> Create(string connectionString, IStorageCache cache = null)
+  public static Record<T> Create(string connectionString, IStorageCache? cache = null)
   {
     return new Record<T>(connectionString, cache);
   }
 
-  private List<string> Filters { get; } = new List<string>();
+  private List<string> Filters { get; } = [];
 
 
-
-  private Record(string connectionString, IStorageCache cache)
+  private Record(string connectionString, IStorageCache? cache)
   {
     Metadata = TableMetadata.Get<T>();
     ConnectionString = connectionString;
     Cache = cache;
   }
-
 
 
   private static string GetMemberName(Expression<Func<T, object>> exp)
@@ -58,7 +55,6 @@ public class Record<T> where T : class, new()
   }
 
 
-
   /// <summary>
   /// Sets a server-side filter on the record by specifying the name of the property to filter for.
   /// </summary>
@@ -66,7 +62,7 @@ public class Record<T> where T : class, new()
   /// <param name="value">The value to filter for.</param>
   /// <param name="comparison">The comparison to apply.</param>
   /// <returns>Itself</returns>
-  public Record<T> SetRange(string name, object value, string comparison = null)
+  public Record<T> SetRange(string name, object value, string? comparison = null)
   {
     var field = Metadata.GetFieldByModelName(name);
     Filters.Add(CreateFilter(field, value, comparison));
@@ -80,7 +76,7 @@ public class Record<T> where T : class, new()
   /// <param name="value">The value to filter for.</param>
   /// <param name="comparison">The comparison to apply.</param>
   /// <returns>Itself</returns>
-  public Record<T> SetRange(Expression<Func<T, object>> exp, object value, string comparison = null)
+  public Record<T> SetRange(Expression<Func<T, object>> exp, object value, string? comparison = null)
   {
     var memberName = GetMemberName(exp);
     return SetRange(memberName, value, comparison);
@@ -94,7 +90,7 @@ public class Record<T> where T : class, new()
   /// <param name="value">The value to filter for.</param>
   /// <param name="comparison">The comparison to apply.</param>
   /// <returns>Itself</returns>
-  public Record<T> SetRangeIf(bool eval, string name, object value, string comparison = null)
+  public Record<T> SetRangeIf(bool eval, string name, object value, string? comparison = null)
   {
     return eval
       ? SetRange(name, value, comparison)
@@ -109,19 +105,19 @@ public class Record<T> where T : class, new()
   /// <param name="value">The value to filter for.</param>
   /// <param name="comparison">The comparison to apply.</param>
   /// <returns>Itself</returns>
-  public Record<T> SetRangeIf(bool eval, Expression<Func<T, object>> exp, object value, string comparison = null)
+  public Record<T> SetRangeIf(bool eval, Expression<Func<T, object>> exp, object value, string? comparison = null)
   {
     var memberName = GetMemberName(exp);
     return SetRangeIf(eval, memberName, value, comparison);
   }
 
-  private static string CreateFilter(TableField field, object value, string comparison = null)
+  private static string CreateFilter(TableField field, object value, string? comparison = null)
   {
     var actualValue = field.IsPartitionKey || field.IsRowKey
       ? TableMetadata.ConvertToString(value, true)
       : value;
 
-    if (String.IsNullOrEmpty(comparison)) comparison = "eq";
+    if (string.IsNullOrEmpty(comparison)) comparison = "eq";
 
     switch (actualValue)
     {
@@ -146,11 +142,11 @@ public class Record<T> where T : class, new()
   {
     var useCache = Metadata.IsCached && Cache != null;
 
-    var filters = Filters?.ToList() ?? new List<string>();
-    if (!String.IsNullOrEmpty(Metadata.FixedPartitionKey) && !useCache)
+    var filters = Filters.ToList();
+    if (!string.IsNullOrEmpty(Metadata.FixedPartitionKey) && !useCache)
       filters.Insert(0, CreateFilter(Metadata.PartitionKeyField, Metadata.FixedPartitionKey));
     var filterString =
-      filters.Any()
+      filters.Count != 0
         ? filters.Aggregate((result, current) => FilterHelper.CombineFilters(result, "and", current))
         : null;
 
@@ -160,10 +156,10 @@ public class Record<T> where T : class, new()
 
     if (useCache)
     {
-      await EnsureCacheLoaded();
-      if (filters.Any())
+      if (filters.Count > 0)
         throw new ServerFiltersNotSupportedException(Metadata);
-      return (await Cache.GetItems(Metadata)).ToArray();
+      var cache = await EnsureCacheLoaded();
+      return (await cache.GetItems(Metadata)).ToArray();
     }
 
     var table = new TableClient(ConnectionString, Metadata.Name);
@@ -177,7 +173,7 @@ public class Record<T> where T : class, new()
   /// </summary>
   /// <param name="clientSideFilter">An optional client-side filter that will be applied to the records after they have been read from the storage.</param>
   /// <returns>Itself</returns>
-  public async Task<T[]> Read(Predicate<T> clientSideFilter = null)
+  public async Task<T[]> Read(Predicate<T>? clientSideFilter = null)
   {
     var entities = await ReadEntities();
     return entities.Select(EntityConverter.FromEntity<T>)
@@ -190,7 +186,7 @@ public class Record<T> where T : class, new()
   /// </summary>
   /// <param name="clientSideFilter">An optional client-side filter that will be applied to the records after they have been read from the storage.</param>
   /// <returns>Itself</returns>
-  public async Task<T> ReadFirst(Predicate<T> clientSideFilter = null)
+  public async Task<T?> ReadFirst(Predicate<T>? clientSideFilter = null)
   {
     var all = await Read(clientSideFilter);
     return all.FirstOrDefault();
@@ -237,7 +233,7 @@ public class Record<T> where T : class, new()
   /// </summary>
   /// <param name="filter"></param>
   /// <returns></returns>
-  public async Task<int> DeleteAll(Predicate<T> filter = null)
+  public async Task<int> DeleteAll(Predicate<T>? filter = null)
   {
     TableEntity[] entities;
     if (filter != null)
@@ -275,8 +271,7 @@ public class Record<T> where T : class, new()
   private async Task<int> DeleteInternal(IReadOnlyCollection<TableEntity> entities)
   {
     var table = new TableClient(ConnectionString, Metadata.Name);
-    var operations = entities.Select(
-      i => new TableTransactionAction(TableTransactionActionType.Delete, i)).ToArray();
+    var operations = entities.Select(i => new TableTransactionAction(TableTransactionActionType.Delete, i)).ToArray();
     if (!operations.Any()) return 0;
     await table.SubmitTransactionAsync(operations);
 
@@ -292,14 +287,14 @@ public class Record<T> where T : class, new()
       await Cache.Reset(Metadata);
   }
 
-  private async Task EnsureCacheLoaded()
+  private async Task<IStorageCache> EnsureCacheLoaded()
   {
-    if (Cache == null || !Metadata.IsCached) return;
+    ArgumentNullException.ThrowIfNull(Cache);
     await Cache.LoadCache(Metadata, async _ =>
     {
       var rec2 = Create(ConnectionString);
       return await rec2.ReadEntities();
     });
+    return Cache;
   }
-
 }

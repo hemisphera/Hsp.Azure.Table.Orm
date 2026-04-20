@@ -5,13 +5,13 @@ namespace Hsp.Azure.Table.Orm;
 
 internal static class EntityConverter
 {
-
   public static TableEntity ToEntity(object item)
   {
     var metadata = TableMetadata.Get(item);
     var entity = new TableEntity(metadata.GetPartitionKey(item), metadata.GetRowKey(item));
     foreach (var field in metadata.Fields)
     {
+      if (field.Property == null) continue;
       var entityValue = field.Property.GetValue(item);
       if (entityValue is DateTime dt)
         entityValue = dt.ToUniversalTime();
@@ -29,9 +29,11 @@ internal static class EntityConverter
     metadata.SetRowKey(item, entity.RowKey);
     foreach (var field in metadata.Fields)
     {
+      if (field.Property == null) continue;
       var entityValue = TryConvertEntityValue(entity[field.StorageName], field.Property.PropertyType);
       field.Property.SetValue(item, entityValue);
     }
+
     return item;
   }
 
@@ -42,5 +44,4 @@ internal static class EntityConverter
         value = dto.ToLocalTime().DateTime;
     return value;
   }
-
 }

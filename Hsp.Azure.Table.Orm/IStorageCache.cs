@@ -10,7 +10,6 @@ namespace Hsp.Azure.Table.Orm;
 /// </summary>
 public interface IStorageCache
 {
-
   /// <summary>
   /// Indicates if a given table is loaded in the cache.
   /// </summary>
@@ -75,5 +74,4 @@ public interface IStorageCache
       await UnlockCache(metadata);
     }
   }
-
 }

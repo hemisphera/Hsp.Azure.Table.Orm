@@ -2,12 +2,10 @@
 
 namespace Hsp.Azure.Table.Orm;
 
-
 /// <summary>
 /// </summary>
 public class ServerFiltersNotSupportedException : NotSupportedException
 {
-
   /// <summary>
   /// The table.
   /// </summary>
@@ -22,5 +20,4 @@ public class ServerFiltersNotSupportedException : NotSupportedException
   {
     Table = table;
   }
-
 }

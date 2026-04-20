@@ -2,7 +2,7 @@ name: v$(VersionPart_Major).$(VersionPart_Minor).$(VersionPart_Build)
 
 variables:
 - name: VersionPart_Major
-  value: '1'
+  value: '2'
 - name: VersionPart_Minor
   value: '0'
 - name: VersionPart_Build
@@ -26,7 +26,7 @@ stages:
   jobs:
   - template: 'jobs/build-and-test.yml@templates'
     parameters:
-      dotNetVersion: 6.x
+      dotNetVersion: 10.x
 - stage: Deploy
   dependsOn: Build
   jobs:

@@ -12,7 +12,6 @@ namespace Hsp.Azure.Table.Orm;
 /// </summary>
 public class DictionaryStorageCache : IStorageCache
 {
-
   readonly Dictionary<string, List<TableEntity>> _cache = new();
 
   readonly ConcurrentDictionary<string, SemaphoreSlim> _locks = new();
@@ -69,5 +68,4 @@ public class DictionaryStorageCache : IStorageCache
     semaphore.Release();
     return Task.CompletedTask;
   }
-
 }
