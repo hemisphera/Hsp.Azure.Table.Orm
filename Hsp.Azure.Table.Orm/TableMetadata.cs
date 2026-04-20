@@ -24,56 +24,7 @@ public class TableMetadata
   public const string RowKeyName = "RowKey";
 
 
-  private static Dictionary<Type, TableMetadata> MetadataStore { get; } = new Dictionary<Type, TableMetadata>();
-
-  /// <summary>
-  /// Registers a in the metadata store.
-  /// </summary>
-  /// <typeparam name="T">The type of the table.</typeparam>
-  /// <param name="name">The name of the table.</param>
-  /// <param name="fixedPartitionKey">If specified, the table will use this fixed partition key.</param>
-  /// <returns>The registered metadata.</returns>
-  public static TableMetadata Register<T>(string name, string? fixedPartitionKey = null)
-  {
-    return Register(typeof(T), name, fixedPartitionKey);
-  }
-
-  /// <summary>
-  /// Registers a in the metadata store.
-  /// </summary>
-  /// <param name="type">The type of the table.</param>
-  /// <param name="name">The name of the table.</param>
-  /// <param name="fixedPartitionKey">If specified, the table will use this fixed partition key.</param>
-  /// <returns>The registered metadata.</returns>
-  public static TableMetadata Register(Type type, string name, string? fixedPartitionKey = null)
-  {
-    var metadata = new TableMetadata
-    {
-      Name = name,
-      EntityType = type,
-      FixedPartitionKey = fixedPartitionKey,
-      RowKeyField = new TableField(RowKeyName, type.GetProperties().First(p => p.GetCustomAttribute<RowKeyAttribute>() != null)),
-      PartitionKeyField = GetPartitionKeyField(type),
-      IsCached = type.GetCustomAttribute<CacheableAttribute>() != null,
-      Fields = type.GetProperties().Select(p =>
-      {
-        var attr = p.GetCustomAttribute<FieldAttribute>();
-        if (attr == null) return null;
-        var fm = new TableField(string.IsNullOrEmpty(attr.Name) ? p.Name : attr.Name, p);
-        return fm;
-      }).OfType<TableField>().ToArray()
-    };
-
-    if (metadata.PartitionKeyField.Property == null && string.IsNullOrEmpty(metadata.FixedPartitionKey))
-      throw new InvalidOperationException($"No partition key and no fixed partition key was found on type '{type}'.");
-    if (metadata.RowKeyField.Property == null)
-      throw new InvalidOperationException($"No row key was found on type '{type}'.");
-
-    MetadataStore.Add(type, metadata);
-    return metadata;
-  }
-
-  private static TableField GetPartitionKeyField(Type type)
+  internal static TableField GetPartitionKeyField(Type type)
   {
     var property = type.GetProperties().FirstOrDefault(p => p.GetCustomAttribute<PartitionKeyAttribute>() != null);
     return new TableField(PartitionKeyName, property);
@@ -92,7 +43,7 @@ public class TableMetadata
   /// <summary>
   /// If specified, the table will use this fixed partition key.
   /// </summary>
-  public string? FixedPartitionKey { get; private init; }
+  public required string? FixedPartitionKey { get; init; }
 
   /// <summary>
   /// The field that represents the partition key.
@@ -108,15 +59,10 @@ public class TableMetadata
   /// <summary>
   /// All fields of the table.
   /// </summary>
-  public TableField[] Fields { get; private init; } = [];
-
-  /// <summary>
-  /// Specifies if the table is cached.
-  /// </summary>
-  public bool IsCached { get; private init; }
+  public TableField[] Fields { get; init; } = [];
 
 
-  private TableMetadata()
+  internal TableMetadata()
   {
   }
 
@@ -164,47 +110,6 @@ public class TableMetadata
   {
     ArgumentNullException.ThrowIfNull(RowKeyField.Property);
     RowKeyField.Property.SetValue(item, ConvertFromString(RowKeyField.Property.PropertyType, value));
-  }
-
-
-  /// <summary>
-  /// Retrieves metadata for the given type.
-  /// </summary>
-  /// <param name="type">The type.</param>
-  /// <returns>The metadata.</returns>
-  public static TableMetadata Get(Type type)
-  {
-    return MetadataStore[type];
-  }
-
-  /// <summary>
-  /// Retrieves metadata for the type the given item is of.
-  /// </summary>
-  /// <param name="item">The item.</param>
-  /// <returns>The metadata.</returns>
-  public static TableMetadata Get(object item)
-  {
-    return MetadataStore[item.GetType()];
-  }
-
-  /// <summary>
-  /// Retrieves metadata for a table with the given name.
-  /// </summary>
-  /// <param name="tableName">The name of the table.</param>
-  /// <returns>The metadata.</returns>
-  public static TableMetadata GetByName(string tableName)
-  {
-    return MetadataStore.Values.First(item => item.Name == tableName);
-  }
-
-  /// <summary>
-  /// Retrieves metadata for the given type.
-  /// </summary>
-  /// <typeparam name="T">The type of the table.</typeparam>
-  /// <returns>The metadata.</returns>
-  public static TableMetadata Get<T>()
-  {
-    return MetadataStore[typeof(T)];
   }
 
 
@@ -271,15 +176,6 @@ public class TableMetadata
     if (name == PartitionKeyName) return PartitionKeyField;
     if (name == RowKeyName) return RowKeyField;
     return Fields.FirstOrDefault(f => f.StorageName == name) ?? throw new FieldNotFoundException(this, name, true);
-  }
-
-  /// <summary>
-  /// Lists all metadata items that were registered.
-  /// </summary>
-  /// <returns></returns>
-  public static IEnumerable<TableMetadata> List()
-  {
-    return MetadataStore.Values;
   }
 
   /// <summary>

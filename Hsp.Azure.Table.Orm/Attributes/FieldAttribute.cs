@@ -12,5 +12,5 @@ public class FieldAttribute : Attribute
   /// The name of the field on the Azure Table Storage.
   /// If this is not specified, the name of the property this attribute is applied to will be used.
   /// </summary>
-  public required string Name { get; set; }
+  public string? Name { get; set; }
 }

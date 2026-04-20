@@ -13,33 +13,16 @@ namespace Hsp.Azure.Table.Orm;
 /// <typeparam name="T">The entity type to open.</typeparam>
 public class Record<T> where T : class, new()
 {
-  private TableMetadata Metadata { get; }
-
-  private string ConnectionString { get; }
-
-  private IStorageCache? Cache { get; }
-
-
-  /// <summary>
-  /// Creates an instance for the given entity type.
-  /// This entity must have his metadata registered first.
-  /// </summary>
-  /// <param name="connectionString">The connection string to the storage account.</param>
-  /// <param name="cache">An otpional cache to be used.</param>
-  /// <returns>The record instance.</returns>
-  public static Record<T> Create(string connectionString, IStorageCache? cache = null)
-  {
-    return new Record<T>(connectionString, cache);
-  }
+  private readonly RecordFactory _factory;
+  private readonly TableMetadata _metadata;
 
   private List<string> Filters { get; } = [];
 
 
-  private Record(string connectionString, IStorageCache? cache)
+  internal Record(RecordFactory factory)
   {
-    Metadata = TableMetadata.Get<T>();
-    ConnectionString = connectionString;
-    Cache = cache;
+    _factory = factory;
+    _metadata = factory.GetMetadata<T>();
   }
 
 
@@ -64,7 +47,7 @@ public class Record<T> where T : class, new()
   /// <returns>Itself</returns>
   public Record<T> SetRange(string name, object value, string? comparison = null)
   {
-    var field = Metadata.GetFieldByModelName(name);
+    var field = _metadata.GetFieldByModelName(name);
     Filters.Add(CreateFilter(field, value, comparison));
     return this;
   }
@@ -140,11 +123,9 @@ public class Record<T> where T : class, new()
 
   private async Task<TableEntity[]> ReadEntities(bool pointersOnly = false)
   {
-    var useCache = Metadata.IsCached && Cache != null;
-
     var filters = Filters.ToList();
-    if (!string.IsNullOrEmpty(Metadata.FixedPartitionKey) && !useCache)
-      filters.Insert(0, CreateFilter(Metadata.PartitionKeyField, Metadata.FixedPartitionKey));
+    if (!string.IsNullOrEmpty(_metadata.FixedPartitionKey))
+      filters.Insert(0, CreateFilter(_metadata.PartitionKeyField, _metadata.FixedPartitionKey));
     var filterString =
       filters.Count != 0
         ? filters.Aggregate((result, current) => FilterHelper.CombineFilters(result, "and", current))
@@ -154,15 +135,7 @@ public class Record<T> where T : class, new()
       ? new[] { TableMetadata.PartitionKeyName, TableMetadata.RowKeyName }
       : null;
 
-    if (useCache)
-    {
-      if (filters.Count > 0)
-        throw new ServerFiltersNotSupportedException(Metadata);
-      var cache = await EnsureCacheLoaded();
-      return (await cache.GetItems(Metadata)).ToArray();
-    }
-
-    var table = new TableClient(ConnectionString, Metadata.Name);
+    var table = _factory.CreateTableClient(_metadata);
     var items = await table.QueryAsync<TableEntity>(filterString, null, loadFields).ToArrayAsync();
     return items.ToArray();
   }
@@ -176,7 +149,7 @@ public class Record<T> where T : class, new()
   public async Task<T[]> Read(Predicate<T>? clientSideFilter = null)
   {
     var entities = await ReadEntities();
-    return entities.Select(EntityConverter.FromEntity<T>)
+    return entities.Select(_factory.ModelFromTableEntity<T>)
       .Where(e => clientSideFilter?.Invoke(e) != false)
       .ToArray();
   }
@@ -208,14 +181,12 @@ public class Record<T> where T : class, new()
   /// <param name="entities">The entities to store.</param>
   public async Task Store(IEnumerable<T> entities)
   {
-    var table = new TableClient(ConnectionString, Metadata.Name);
-    var items = entities.Select(EntityConverter.ToEntity);
+    var table = _factory.CreateTableClient(_metadata);
+    var items = entities.Select(e => _factory.ModelToTableEntity(e));
 
     var operations = items.Select(i => new TableTransactionAction(TableTransactionActionType.UpsertReplace, i)).ToArray();
     if (!operations.Any()) return;
     await table.SubmitTransactionAsync(operations);
-
-    await ResetCache();
   }
 
   /// <summary>
@@ -239,7 +210,7 @@ public class Record<T> where T : class, new()
     if (filter != null)
     {
       var allEntities = await Read(filter);
-      entities = allEntities.Select(e => new TableEntity(Metadata.GetPartitionKey(e), Metadata.GetRowKey(e))).ToArray();
+      entities = allEntities.Select(e => new TableEntity(_metadata.GetPartitionKey(e), _metadata.GetRowKey(e))).ToArray();
     }
     else
       entities = await ReadEntities(true);
@@ -254,7 +225,7 @@ public class Record<T> where T : class, new()
   /// <returns>The number of entities that were actually deleted.</returns>
   public async Task<int> Delete(IEnumerable<T> entities)
   {
-    var tempTableEntities = entities.Select(e => new TableEntity(Metadata.GetPartitionKey(e), Metadata.GetRowKey(e))).ToArray();
+    var tempTableEntities = entities.Select(e => new TableEntity(_metadata.GetPartitionKey(e), _metadata.GetRowKey(e))).ToArray();
     return await DeleteInternal(tempTableEntities);
   }
 
@@ -270,31 +241,11 @@ public class Record<T> where T : class, new()
 
   private async Task<int> DeleteInternal(IReadOnlyCollection<TableEntity> entities)
   {
-    var table = new TableClient(ConnectionString, Metadata.Name);
+    var table = _factory.CreateTableClient(_metadata);
     var operations = entities.Select(i => new TableTransactionAction(TableTransactionActionType.Delete, i)).ToArray();
     if (!operations.Any()) return 0;
     await table.SubmitTransactionAsync(operations);
 
-    await ResetCache();
-
     return entities.Count;
-  }
-
-
-  private async Task ResetCache()
-  {
-    if (Cache != null && Metadata.IsCached)
-      await Cache.Reset(Metadata);
-  }
-
-  private async Task<IStorageCache> EnsureCacheLoaded()
-  {
-    ArgumentNullException.ThrowIfNull(Cache);
-    await Cache.LoadCache(Metadata, async _ =>
-    {
-      var rec2 = Create(ConnectionString);
-      return await rec2.ReadEntities();
-    });
-    return Cache;
   }
 }
