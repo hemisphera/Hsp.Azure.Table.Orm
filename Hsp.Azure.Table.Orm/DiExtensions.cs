@@ -7,15 +7,15 @@ public static class DiExtensions
 {
   public static void AddAzureTable(
     this IServiceCollection services,
-    Action<RecordFactoryOptions>? configure = null,
-    Action<RecordFactory>? setup = null)
+    Action<IServiceProvider, RecordFactoryOptions>? configure = null,
+    Action<IServiceProvider, RecordFactory>? setup = null)
   {
-    services.AddSingleton<RecordFactory>(_ =>
+    services.AddSingleton<RecordFactory>(sp =>
     {
       var options = new RecordFactoryOptions();
-      configure?.Invoke(options);
+      configure?.Invoke(sp, options);
       var factory = new RecordFactory(options.ConnectionString);
-      setup?.Invoke(factory);
+      setup?.Invoke(sp, factory);
       return factory;
     });
   }
