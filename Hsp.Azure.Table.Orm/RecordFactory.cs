@@ -18,9 +18,16 @@ public class RecordFactory
   /// <summary>
   /// </summary>
   /// <param name="connectionString"></param>
-  public RecordFactory(string connectionString)
+  public RecordFactory(string? connectionString)
   {
-    _connectionString = connectionString;
+    _connectionString = string.IsNullOrEmpty(connectionString)
+      ? RecordFactoryOptions.DevStorageConnectionString
+      : connectionString;
+  }
+
+  public RecordFactory()
+    : this(null)
+  {
   }
 
 
