@@ -94,7 +94,7 @@ public class RecordFactory
   /// <param name="fixedPartitionKey">If specified, the table will use this fixed partition key.</param>
   /// <param name="create">If true, the table will be created if it does not exist. Default is false.</param>
   /// <returns>The registered metadata.</returns>
-  public TableMetadata RegisterTable<T>(string name, string? fixedPartitionKey = null, bool create = false)
+  public TableMetadata RegisterTable<T>(string? name = null, string? fixedPartitionKey = null, bool create = false)
   {
     return RegisterTable(typeof(T), name, fixedPartitionKey, create);
   }
@@ -107,11 +107,11 @@ public class RecordFactory
   /// <param name="fixedPartitionKey">If specified, the table will use this fixed partition key.</param>
   /// <param name="create">If true, the table will be created if it does not exist. Default is false.</param>
   /// <returns>The registered metadata.</returns>
-  public TableMetadata RegisterTable(Type type, string name, string? fixedPartitionKey = null, bool create = false)
+  public TableMetadata RegisterTable(Type type, string? name = null, string? fixedPartitionKey = null, bool create = false)
   {
     var metadata = new TableMetadata
     {
-      Name = name,
+      Name = string.IsNullOrEmpty(name) ? type.Name : name,
       EntityType = type,
       FixedPartitionKey = fixedPartitionKey,
       RowKeyField = new TableField(TableMetadata.RowKeyName, type.GetProperties().First(p => p.GetCustomAttribute<RowKeyAttribute>() != null)),
